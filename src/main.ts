@@ -48,9 +48,11 @@ app.use(ErrorsFilter.error());
 
 const bootstrap = async () => {
     try {
-        // Connect to the Dadabase
+        // Connect to the database and ensure models exist (e.g. `files` for upload metadata).
+        // `npm run migrate` uses sync({ force: true }) and drops data; normal startup only creates missing tables.
         const sequelize = new Sequelize(DatabaseConfig.getSequelizeConfig());
         await sequelize.authenticate();
+        await sequelize.sync();
         // Port app running
         const PORT = process.env.PORT || 8080;
         app.listen(PORT, () => {

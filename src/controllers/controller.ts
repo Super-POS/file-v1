@@ -3,7 +3,7 @@ import JsonResponseSuccess from "../shared/response";
 import FileService from "./service";
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
-import extractImageBuffer from "../shared/files/extract.buffer";
+import { parseImageBase64 } from "../shared/files/extract.buffer";
 import FilePayload from "../shared/files/payload.interface";
 import filePayload from "../shared/files/image.payload";
 import BadRequestException from "../exceptions/bad-request";
@@ -50,16 +50,16 @@ class FileController {
         try {
             await fs.ensureDir(fileDir);
             const folder = sanitize(req.body.folder);
-            const buffer = extractImageBuffer(req.body.image);
+            const { buffer, ext, mimetype } = parseImageBase64(req.body.image);
             const destinationFolder = `${fileDir}/${folder}`;
-            const fileName = uuidv4();
+            const fileName = `${uuidv4()}.${ext}`;
             const filePath = `${destinationFolder}/${fileName}`;
 
             await fs.mkdir(destinationFolder, { recursive: true });
             await fs.writeFile(filePath, buffer);
 
             if (await verifyFile(filePath)) {
-                const file: FilePayload = filePayload(fileName, filePath, buffer);
+                const file: FilePayload = filePayload(fileName, filePath, buffer, mimetype);
                 return JsonResponseSuccess(res, await FileService.upload(file));
             } else {
                 await fs.unlink(filePath).catch(e => console.error('Failed to delete unverified file', e));
